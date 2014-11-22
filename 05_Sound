@@ -1,0 +1,44 @@
+#!/bin/sh
+# /etc/pm/sleep.d/05_Sound
+# Remember to chmod +x /etc/pm/sleep.d/05_sound
+
+#####################################################
+
+#!/bin/bash
+# File: "/etc/pm/sleep.d/05_Sound".
+mods=( btusb bnep ath3k rfcomm bluetooth )
+case "${1}" in
+hibernate|suspend)
+#stop bluetooth service
+service bluetooth stop
+
+#unload bluetooth modules
+for m in "${mods[@]}"
+do
+   /sbin/rmmod $m
+done
+
+# Unbind ehci for preventing error
+echo -n "0000:00:1d.0" | tee /sys/bus/pci/drivers/ehci-pci/unbind
+# Unbind snd_hda_intel for sound
+echo -n "0000:00:1b.0" | tee /sys/bus/pci/drivers/snd_hda_intel/unbind
+echo -n "0000:00:03.0" | tee /sys/bus/pci/drivers/snd_hda_intel/unbind
+;;
+resume|thaw)
+# Bind ehci for preventing error
+echo -n "0000:00:1d.0" | tee /sys/bus/pci/drivers/ehci-pci/bind
+# Bind snd_hda_intel for sound
+echo -n "0000:00:1b.0" | tee /sys/bus/pci/drivers/snd_hda_intel/bind
+echo -n "0000:00:03.0" | tee /sys/bus/pci/drivers/snd_hda_intel/bind
+
+#load bluetooth modules
+for m in "${mods[@]}"
+do
+   /sbin/modprobe $m
+done
+
+#start bluetooth service
+service bluetooth start
+;;
+esac﻿
+#####################################################
